@@ -1,0 +1,132 @@
+{% extends 'post/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block head_title %}
+    {{post.name}}
+{% endblock %}
+{% block main_area %}
+
+    <!-- Post content -->
+    <div id="post-area">
+        <header class="mb-4">
+            <!-- Post title -->
+            <h1 class="fw-bolder mb-1">{{post.name | lower}}</h1> <!--상품명-->
+            {% if post.hook_text %}
+            <h5 class="text-muted">{{post.hook_text}}</h5>
+            {% endif %}
+            <!--categories-->
+            {% if post.category %}
+            <a class="badge bg-secondary text-decoration-none link-light" href="/post/{{post.category.get_absolute_url}}">
+                {{post.category}}
+            </a>
+            {% else %}
+            <a class="badge bg-secondary text-decoration-none link-light" href="/post/category/no_category">
+                미분류
+            </a>
+            {% endif %}
+        </header>
+
+        <!-- authenticated-->
+        {% if user.is_authenticated and user == post.author %}
+            <a class="btn btn-info float-right" href="/post/update_post/{{post.pk}}/" role="button">
+                <i class="fas fa-pen">Edit Post</i>
+            </a>
+        {% endif %}
+
+        <!-- preview image figure -->
+        <figure class="mb-4">
+            {% if post.head_image %}
+            <img class="img-fluid rounded" src="{{post.head_image.url}}" alt="{{post.name}}의 이미지"/>
+            {% else %}
+            <img class="img-fluid rounded" src="https://picsum.photos/seed/{{post.pk}}/800/200" alt="random image" />
+            {% endif %}
+            <br><br>
+        </figure>
+
+        <!-- Post content -->
+        <div id="comment-area" class="mb-5">
+            <p class="fs-5 mb-4">{{post.content}}</p>
+            <!-- tags -->
+            {% if post.tags.exists %}
+            <i class = "fas fa-tag"></i>
+            {% for t in post.tags.iterator %}
+            <span class="badge badge-pill badge-light">
+                <a href="{{t.get_absolute_url}}">
+                    {{t}}
+                </a>
+            </span>
+            {% endfor %}
+            {% endif %}
+
+
+            <br><br>
+            {% if post.file_upload %}
+            <a href="{{post.file_upload.url}}" class="btn btn-outline-dark" role="button" download>
+                {% if post.get_file_ext == 'xlsx' or post.get_file_ext == 'xls' %}
+                <i class="fa-regular fa-file-excel"></i>
+                {% elif post.get_file_ext == 'docx' or post.get_file_ext == 'doc' %}
+                <i class="fa-regular fa-file-word"></i>
+                {% else %}
+                <i class="fa-regular fa-file"></i>
+                {% endif %}
+                Download {{post.get_file_name}}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Comments section -->
+    <section class="mb-5">
+        <div class="card bg-light">
+            <div class="card-body">
+                <!-- Comment form-->  <!--댓글 작성 부분-->
+                {% if user.is_authenticated %}
+                <form class="mb-4" id="comment-form" method="post" action="{{post.get_absolute_url}}new_comment/">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        {{comment_form | crispy}}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+                {% else %}
+                    <a role="button" class="btn btn-dark btn-block btn-sm" href="#"
+                       data-toggle="modal" data-target="#loginModal">
+                        Log in and Leave a comment
+                    </a>
+                {% endif %}
+
+                {% if post.comment_set.exists %}
+                {% for comment in post.comment_set.iterator %}
+                <!-- Single comment-->
+                <div class="media d-flex" id="comment-{{comment.pk}}">
+                    <img class="rounded-circle mr-3" src="{{comment.get_avatar_url}}" alt="{{comment.author}}" width="60px" />
+                    <div class="media-body ms-3">
+                        {% if user.is_authenticated and comment.author == user %}
+                        <a role="button" class="btn btn-sm btn-info float-right"
+                           href="/blog/update_comment/{{comment.pk}}/">
+                            Edit <!-- 댓글 수정 -->
+                        </a>
+                        {% endif %}
+                        <div class="fw-bold">
+                            {{comment.author.username}}
+                            <small class="text_muted">{{comment.created_at}}</small>
+                        </div>
+                        <p>{{comment.content | linebreaks}}</p>  <!--linebreaks => 줄바꿈 표시 -->
+                        {% if comment.created_at != comment.modified_at %} <!-- comment가 생성된 시간과 업데이트된 시간이 다르다면-->
+                        <p class="text-muted float-right">
+                            <small>Updated : {{comment.modified_at}} </small>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+{% endblock %}
